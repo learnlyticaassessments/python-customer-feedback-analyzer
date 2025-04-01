@@ -1,7 +1,6 @@
 import importlib.util
 import datetime
 import os
-import numpy as np
 import inspect
 
 def test_student_code(solution_path):
@@ -13,167 +12,107 @@ def test_student_code(solution_path):
     student_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(student_module)
 
-    report_lines = [f"\n=== Fitness Tracker Test Run at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ==="]
+    FeedbackAnalyzer = student_module.FeedbackAnalyzer
+    analyzer = FeedbackAnalyzer()
+
+    report_lines = [f"\n=== Feedback Analyzer Test Run at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ==="]
 
     test_cases = [
         {
-            "desc": "Create Step Series",
-            "func": "create_step_series",
-            "input": [1000, 3000, 5000],
-            "expected": np.array([1000, 3000, 5000])
+            "desc": "Clean and tokenize input",
+            "func": "clean_and_tokenize",
+            "input": "Excellent service and SUPPORT!",
+            "expected": ['excellent', 'service', 'and', 'support']
         },
         {
-            "desc": "Validate Step Data - Valid",
-            "func": "validate_steps",
-            "input": np.array([1000, 3000, 5000]),
-            "expected": True
+            "desc": "Word frequency count",
+            "func": "compute_frequency",
+            "input": ['good', 'service', 'good', 'team'],
+            "expected": {'good': 2, 'service': 1, 'team': 1}
         },
         {
-            "desc": "Compute Fitness Summary",
-            "func": "compute_fitness_summary",
-            "input": np.array([3000, 7000, 9000]),
-            "expected": (19000, 6333.33, 9000)
+            "desc": "Most frequent word",
+            "func": "get_most_frequent",
+            "input": {'great': 3, 'good': 2, 'okay': 1},
+            "expected": ('great', 3)
         },
         {
-            "desc": "Apply Bonus Points",
-            "func": "apply_bonus_points",
-            "input": np.array([2000, 7000, 8000]),
-            "expected": np.array([2000, 7100, 8100])
+            "desc": "Clean sentence with punctuation",
+            "func": "clean_and_tokenize",
+            "input": "Amazing SERVICE. amazing support!!!",
+            "expected": ['amazing', 'service', 'amazing', 'support']
         },
         {
-            "desc": "Validate Step Data - Invalid",
-            "func": "validate_steps",
-            "input": np.array([3000, -500, 4000]),
-            "expected": False
+            "desc": "Empty frequency dict",
+            "func": "get_most_frequent",
+            "input": {},
+            "expected": "No words to analyze."
         }
     ]
 
     edge_cases = [
-        {
-            "func": "create_step_series",
-            "input": [1000, 3000, 5000],
-            "expected": np.array([1000, 3000, 5000]),
-            "desc": "Hardcoded step array return"
-        },
-        {
-            "func": "validate_steps",
-            "input": np.array([-1, 0, 1]),
-            "expected": False,
-            "desc": "Negative steps not handled"
-        },
-        {
-            "func": "compute_fitness_summary",
-            "input": np.array([1, 1, 1]),
-            "expected": (3, 1.0, 1),
-            "desc": "Hardcoded summary values"
-        },
-        {
-            "func": "apply_bonus_points",
-            "input": np.array([7000, 8000, 6500]),
-            "expected": np.array([7100, 8100, 6500]),
-            "desc": "Bonus logic hardcoded or missing"
-        },
-        # Pass-only checks
-        {
-            "func": "create_step_series",
-            "input": None,
-            "expected": None,
-            "desc": "Function contains only 'pass' statement"
-        },
-        {
-            "func": "validate_steps",
-            "input": None,
-            "expected": None,
-            "desc": "Function contains only 'pass' statement"
-        },
-        {
-            "func": "compute_fitness_summary",
-            "input": None,
-            "expected": None,
-            "desc": "Function contains only 'pass' statement"
-        },
-        {
-            "func": "apply_bonus_points",
-            "input": None,
-            "expected": None,
-            "desc": "Function contains only 'pass' statement"
-        }
+        {"func": "clean_and_tokenize", "desc": "Function contains only pass"},
+        {"func": "compute_frequency", "desc": "Function contains only pass"},
+        {"func": "get_most_frequent", "desc": "Function contains only pass"},
+        {"func": "clean_and_tokenize", "desc": "Hardcoded token list", "expected": ['excellent', 'service', 'and', 'support'], "input": "Excellent service and SUPPORT!"},
+        {"func": "compute_frequency", "desc": "Hardcoded frequency", "expected": {'good': 2, 'service': 1, 'team': 1}, "input": ['good', 'service', 'good', 'team']},
+        {"func": "get_most_frequent", "desc": "Hardcoded top word", "expected": ('great', 3), "input": {'great': 3, 'good': 2, 'okay': 1}},
     ]
 
     for i, case in enumerate(test_cases, 1):
         try:
-            func = getattr(student_module, case["func"])
+            method = getattr(analyzer, case["func"])
             edge_case_failed = False
-            failing_edge_case_desc = None
+            failing_reason = None
 
-            for edge_case in edge_cases:
-                if edge_case["func"] == case["func"]:
-                    edge_func = getattr(student_module, edge_case["func"])
-                    src = inspect.getsource(edge_func).replace(" ", "").replace("\n", "").lower()
+            for edge in edge_cases:
+                if edge["func"] != case["func"]:
+                    continue
 
-                    # Fail if only 'pass'
-                    if 'pass' in src and len(src) < 80:
-                        edge_case_failed = True
-                        failing_edge_case_desc = "Function contains only pass statement"
-                        break
+                src = inspect.getsource(getattr(FeedbackAnalyzer, edge["func"])).replace(" ", "").replace("\n", "").lower()
 
-                    # Run edge case input if applicable
-                    if edge_case["input"] is not None:
-                        result = edge_func(edge_case["input"])
-                        expected = edge_case["expected"]
+                if "pass" in src and len(src) < 80:
+                    edge_case_failed = True
+                    failing_reason = "Function contains only 'pass'"
+                    break
 
-                        if isinstance(expected, np.ndarray):
-                            passed = np.array_equal(result, expected)
-                        elif isinstance(expected, tuple):
-                            passed = all(round(a, 2) == round(b, 2) for a, b in zip(result, expected))
-                        else:
-                            passed = result == expected
+                if "input" in edge:
+                    result = getattr(analyzer, edge["func"])(edge["input"])
+                    if result == edge["expected"]:
+                        # Check for hardcoded return lines
+                        if edge["func"] == "clean_and_tokenize" and "return['excellent','service','and','support']" in src:
+                            edge_case_failed = True
+                            failing_reason = "Hardcoded return: fixed token list"
+                            break
+                        if edge["func"] == "compute_frequency" and "return{'good':2,'service':1,'team':1}" in src:
+                            edge_case_failed = True
+                            failing_reason = "Hardcoded return: fixed frequency dict"
+                            break
+                        if edge["func"] == "get_most_frequent" and "return('great',3)" in src:
+                            edge_case_failed = True
+                            failing_reason = "Hardcoded return: fixed most frequent word"
+                            break
+                        if all(kw not in src for kw in ["split", "translate", "punctuation", "for", "in", "max", "key"]):
+                            edge_case_failed = True
+                            failing_reason = edge["desc"]
+                            break
 
-                        # Check if correct result is returned with no logic
-                        if passed:
-                            if (
-                                "sum" not in src and "mean" not in src and "max" not in src and
-                                "np." not in src and "+" not in src and "*" not in src and "/" not in src
-                            ):
-                                edge_case_failed = True
-                                failing_edge_case_desc = edge_case["desc"]
-                                break
+            result = method(case["input"])
+            expected = case["expected"]
 
-                            # Additional check for exact hardcoded return line
-                            if edge_case["func"] == "create_step_series" and "returnnp.array([1000,3000,5000])" in src:
-                                edge_case_failed = True
-                                failing_edge_case_desc = "Hardcoded return: np.array with fixed values"
-                                break
+            # If edge case failed, fail the test
+            if edge_case_failed:
+                status = "❌"
+            else:
+                status = "✅" if result == expected or (expected == "No words to analyze." and result is None) else "❌"
 
-                            if edge_case["func"] == "compute_fitness_summary" and "return(3,1.0,1)" in src:
-                                edge_case_failed = True
-                                failing_edge_case_desc = "Hardcoded return: tuple with fixed values"
-                                break
-
-                            if edge_case["func"] == "validate_steps" and "returntrue" in src:
-                                edge_case_failed = True
-                                failing_edge_case_desc = "Hardcoded return: always True"
-                                break
+            if status == "✅":
+                msg = f"{status} Test Case {i} Passed: {case['desc']} | Actual={result}"
+            else:
+                msg = f"{status} Test Case {i} Failed: {case['desc']} | Expected={expected} | Actual={result}"
 
             if edge_case_failed:
-                msg = (
-                    f"❌ Test Case {i} Failed: {case['desc']} "
-                    f"| Reason: Edge case validation failed - {failing_edge_case_desc}."
-                )
-            else:
-                result = func(case["input"])
-                expected = case["expected"]
-                if isinstance(expected, np.ndarray):
-                    passed = np.array_equal(result, expected)
-                elif isinstance(expected, tuple):
-                    passed = all(round(a, 2) == round(b, 2) for a, b in zip(result, expected))
-                else:
-                    passed = result == expected
-
-                if passed:
-                    msg = f"✅ Test Case {i} Passed: {case['desc']} | Actual={result}"
-                else:
-                    msg = f"❌ Test Case {i} Failed: {case['desc']} | Expected={expected} | Actual={result}"
+                msg += f" | Reason: Edge case validation failed - {failing_reason}"
 
             print(msg)
             report_lines.append(msg)
