@@ -1,4 +1,4 @@
-name: Run Hospital Patient Management Evaluator
+name: Run Customer Feedback Analyzer Evaluator
 
 on:
   workflow_dispatch:
