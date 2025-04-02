@@ -2,6 +2,45 @@ import importlib.util
 import datetime
 import os
 import inspect
+import random
+import string
+
+def generate_random_input(func_name):
+    """Generate random input based on the function name."""
+    if func_name == "clean_and_tokenize":
+        # Generate a random sentence with punctuation
+        words = ["".join(random.choices(string.ascii_letters, k=random.randint(3, 8))) for _ in range(random.randint(5, 10))]
+        sentence = " ".join(words)
+        sentence = sentence + random.choice([".", "!", "?", ""])
+        return sentence
+    elif func_name == "compute_frequency":
+        # Generate a random list of words
+        words = [random.choice(["good", "great", "okay", "bad", "excellent", "poor"]) for _ in range(random.randint(5, 15))]
+        return words
+    elif func_name == "get_most_frequent":
+        # Generate a random frequency dictionary
+        words = ["good", "great", "okay", "bad", "excellent", "poor"]
+        freq_dict = {word: random.randint(1, 10) for word in random.sample(words, random.randint(2, len(words)))}
+        return freq_dict
+    return None
+
+def calculate_expected_output(func_name, input_data):
+    """Calculate the expected output based on the function name and input."""
+    if func_name == "clean_and_tokenize":
+        # Tokenize and clean the input sentence
+        return [word.lower() for word in input_data.translate(str.maketrans("", "", string.punctuation)).split()]
+    elif func_name == "compute_frequency":
+        # Compute frequency of words in the list
+        freq = {}
+        for word in input_data:
+            freq[word] = freq.get(word, 0) + 1
+        return freq
+    elif func_name == "get_most_frequent":
+        # Find the most frequent word
+        if not input_data:
+            return "No words to analyze."
+        return max(input_data.items(), key=lambda x: x[1])
+    return None
 
 def test_student_code(solution_path):
     report_dir = os.path.join(os.path.dirname(__file__), "..", "student_workspace")
@@ -59,7 +98,22 @@ def test_student_code(solution_path):
         {"func": "get_most_frequent", "desc": "Hardcoded top word", "expected": ('great', 3), "input": {'great': 3, 'good': 2, 'okay': 1}},
     ]
 
-    for i, case in enumerate(test_cases, 1):
+    # Add random test cases
+    random_test_cases = []
+    for func_name in ["clean_and_tokenize", "compute_frequency", "get_most_frequent"]:
+        random_input = generate_random_input(func_name)
+        expected_output = calculate_expected_output(func_name, random_input)
+        random_test_cases.append({
+            "desc": f"Random input test for {func_name}",
+            "func": func_name,
+            "input": random_input,
+            "expected": expected_output
+        })
+
+    # Combine predefined and random test cases
+    all_test_cases = test_cases + random_test_cases
+
+    for i, case in enumerate(all_test_cases, 1):
         try:
             method = getattr(analyzer, case["func"])
             edge_case_failed = False
@@ -106,20 +160,22 @@ def test_student_code(solution_path):
             else:
                 status = "✅" if result == expected or (expected == "No words to analyze." and result is None) else "❌"
 
-            if status == "✅":
-                msg = f"{status} Test Case {i} Passed: {case['desc']} | Actual={result}"
-            else:
-                msg = f"{status} Test Case {i} Failed: {case['desc']} | Expected={expected} | Actual={result}"
+            if "Random input test" not in case["desc"]:
+                if status == "✅":
+                    msg = f"{status} Test Case {i} Passed: {case['desc']} | Actual={result}"
+                else:
+                    msg = f"{status} Test Case {i} Failed: {case['desc']} | Expected={expected} | Actual={result}"
 
-            if edge_case_failed:
-                msg += f" | Reason: Edge case validation failed - {failing_reason}"
+                if edge_case_failed:
+                    msg += f" | Reason: Edge case validation failed - {failing_reason}"
 
-            print(msg)
-            report_lines.append(msg)
+                print(msg)
+                report_lines.append(msg)
 
         except Exception as e:
             msg = f"❌ Test Case {i} Crashed: {case['desc']} | Error={str(e)}"
-            print(msg)
+            if "Random input test" not in case["desc"]:
+                print(msg)
             report_lines.append(msg)
 
     with open(report_path, "a", encoding="utf-8") as f:
