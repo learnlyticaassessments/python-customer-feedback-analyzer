@@ -4,7 +4,7 @@ import pandas as pd
 import subprocess
 from report_generator import generate_reports
 
-POINTS_PER_PASS = 2
+POINTS_PER_PASS = 2.5
 
 def evaluate_student_code(student_id, student_file):
     print(f"🔍 Evaluating code for {student_id}...")
